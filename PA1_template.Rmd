@@ -8,15 +8,68 @@ output:
 
 ## Loading and preprocessing the data
 
+Unzip the dataset if it hasn't been done yet, and load it into R. Remove the  
+observations that don't have a 'steps' value as they are worthless in this analysis.
+
+```{r}
+if(!file.exists('activity.csv')){
+    unzip('activity.zip')
+}
+
+steps <- read.csv('activity.csv')
+steps$date <- as.Date(steps$date, "%Y-%m-%d")
+stepsClean <- subset(steps, !is.na(steps))
+```
 
 
 ## What is mean total number of steps taken per day?
 
+Group the data by day and calculate the sum of steps per day, then plot a histogram.
 
+```{r, message=FALSE}
+library(dplyr)
+
+stepsPerDay <- stepsClean %>% group_by(date) %>% summarise(sum(steps))
+names(stepsPerDay) <- c('date', 'total_steps')
+hist(stepsPerDay$total_steps, main = 'Total number of steps taken per day', xlab = 'Number of steps')
+```
+
+Calculate the mean steps taken per day:
+
+```{r}
+mean(stepsPerDay$total_steps)
+```
+
+And the median steps taken per day:
+
+```{r}
+median(stepsPerDay$total_steps)
+```
 
 ## What is the average daily activity pattern?
 
+Group the steps taken by 'interval' and average over all days, then make a time series plot.
 
+```{r}
+library(ggplot2)
+
+avgStepsPerInterval <- stepsClean %>% group_by(interval) %>% summarise(mean(steps))
+names(avgStepsPerInterval) <- c('interval', 'avg_steps')
+
+qplot(avgStepsPerInterval$interval, avgStepsPerInterval$avg_steps, 
+      geom = 'line',
+      xlab = 'Interval',
+      ylab = 'Avg number of steps taken (across all days)')
+```
+
+Which interval is the most active?
+
+```{r}
+index <- which.max(avgStepsPerInterval$avg_steps)
+interval <- avgStepsPerInterval$interval[index]
+
+interval
+```
 
 ## Imputing missing values
 
