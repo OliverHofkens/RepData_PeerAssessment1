@@ -73,6 +73,61 @@ interval
 
 ## Imputing missing values
 
+Find the rows with missing values:
 
+```{r}
+missingSteps <- is.na(steps$steps)
+table(missingSteps)
+```
+
+Fill in the missing intervals with the average across all days for that interval,
+then recalculate the previous histogram, mean and median:
+
+```{r}
+impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+stepsImputed <- steps %>% group_by(interval) %>% mutate(steps = impute.mean(steps)) %>% ungroup()
+
+stepsPerDay <- stepsImputed %>% group_by(date) %>% summarise(sum(steps))
+names(stepsPerDay) <- c('date', 'total_steps')
+hist(stepsPerDay$total_steps, main = 'Total number of steps taken per day', xlab = 'Number of steps')
+```
+
+```{r}
+mean(stepsPerDay$total_steps)
+```
+
+And the median steps taken per day:
+
+```{r}
+median(stepsPerDay$total_steps)
+```
+
+We notice that the median has changed slightly, and is now equal to the mean. Which
+isn't abnormal as the missing values were replaced by the means per interval across all days.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Add a 'weekend/weekday' factor to the data and create 2 panels of a time series plot,
+split on weekend/weekday.
+
+```{r}
+getDayType <- function(x) {
+    if (weekdays(x) %in% c('Saturday', 'Sunday')){
+        'weekend'
+    } else {
+        'weekday'
+    }
+}
+
+stepsImputed <- stepsImputed %>% mutate(daytype = as.factor(sapply(stepsImputed$date, getDayType)))
+
+avgStepsPerInterval <- stepsImputed %>% group_by(interval,daytype) %>% summarise(mean(steps))
+names(avgStepsPerInterval) <- c('interval', 'daytype', 'avg_steps')
+
+qplot(interval, avg_steps, 
+      facets = daytype ~ .,
+      data = avgStepsPerInterval,
+      geom = 'line',
+      xlab = 'Interval',
+      ylab = 'Avg number of steps taken (across days)')
+```
